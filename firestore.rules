@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    // The public site reads data on the SERVER (Admin SDK), so visitors never
+    // touch Firestore directly. Only the signed-in admin can use the client SDK.
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+    match /admins/{id} { allow read: if request.auth != null && request.auth.uid == id; allow write: if false; }
+  }
+}
